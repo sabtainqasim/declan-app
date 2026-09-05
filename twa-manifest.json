@@ -1,0 +1,24 @@
+{
+  "packageId": "app.declanhome.twa",
+  "host": "declanhome.netlify.app",
+  "name": "Declan",
+  "launcherName": "Declan",
+  "display": "standalone",
+  "themeColor": "#7A9B76",
+  "navigationColor": "#7A9B76",
+  "backgroundColor": "#FAF6F0",
+  "startUrl": "/index.html",
+  "iconUrl": "https://declanhome.netlify.app/icons/icon-512.png",
+  "maskableIconUrl": "https://declanhome.netlify.app/icons/icon-512.png",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://declanhome.netlify.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "enableNotifications": true,
+  "orientation": "portrait"
+}

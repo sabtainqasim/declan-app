@@ -1,0 +1,24 @@
+{
+  "name": "Declan",
+  "short_name": "Declan",
+  "description": "Declan — your home's AI assistant for kitchen, grocery, finance, health, and more.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#FAF6F0",
+  "theme_color": "#7A9B76",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
