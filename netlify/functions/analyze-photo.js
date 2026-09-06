@@ -43,7 +43,7 @@ exports.handler = async function (event) {
     // Model name is configurable via env var so a future Google retirement (they've been
     // retiring Gemini models every few months) only needs a Netlify env var change, not a
     // code redeploy. Defaults to gemini-3.5-flash if GEMINI_MODEL isn't set.
-    const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
     if (!apiKey) return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY is not set on the server.' }) };
     if (!imageBase64 || typeof imageBase64 !== 'string') return { statusCode: 400, body: JSON.stringify({ error: 'No image provided.' }) };
