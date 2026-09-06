@@ -21,6 +21,10 @@ exports.handler = async function (event) {
     const { pantryItems, cuisine, mealType, language, country, city, allergiesAndPreferences, dietaryTags, favouriteStore } = JSON.parse(event.body || '{}');
 
     const apiKey = process.env.GEMINI_API_KEY;
+    // Model name is configurable via env var so a future Google retirement (they've been
+    // retiring Gemini models every few months) only needs a Netlify env var change, not a
+    // code redeploy. Defaults to gemini-3.5-flash if GEMINI_MODEL isn't set.
+    const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
     if (!apiKey) {
       return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY is not set on the server.' }) };
     }
@@ -72,7 +76,7 @@ an empty string if you don't have enough info to even guess. No markdown formatt
 raw JSON array.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
