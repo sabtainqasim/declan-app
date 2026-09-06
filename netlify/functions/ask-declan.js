@@ -31,7 +31,7 @@ exports.handler = async function (event) {
     // Model name is configurable via env var so a future Google retirement (they've been
     // retiring Gemini models every few months) only needs a Netlify env var change, not a
     // code redeploy. Defaults to gemini-3.5-flash if GEMINI_MODEL isn't set.
-    const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+    const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
     if (!apiKey) {
       return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY is not set on the server.' }) };
     }
@@ -214,14 +214,23 @@ No markdown formatting, no extra text outside this JSON.`;
     let thinking = '';
     let answer = "Sorry, I couldn't come up with an answer just now.";
     let recipeCard = null;
-    try {
-      const cleaned = rawText.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(cleaned);
-      thinking = parsed.thinking || '';
-      answer = parsed.answer || answer;
-      recipeCard = parsed.recipeCard || null;
-    } catch (e) {
-      if (rawText) answer = rawText;
+
+    // If Gemini itself returned an error (wrong model name, quota, blocked request, etc.),
+    // surface it directly instead of the generic fallback — otherwise real errors get
+    // silently swallowed and are impossible to diagnose from the chat UI alone.
+    if (data?.error) {
+      answer = `⚠️ Gemini API error: ${data.error.message || data.error.status || 'unknown error'} (model: ${GEMINI_MODEL})`;
+    } else {
+      try {
+        const cleaned = rawText.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+        thinking = parsed.thinking || '';
+        answer = parsed.answer || answer;
+        recipeCard = parsed.recipeCard || null;
+      } catch (e) {
+        if (rawText) answer = rawText;
+        else if (data?.promptFeedback?.blockReason) answer = `⚠️ Blocked by Gemini safety filter: ${data.promptFeedback.blockReason}`;
+      }
     }
 
     return {
