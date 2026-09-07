@@ -207,6 +207,7 @@ No markdown formatting, no extra text outside this JSON.`;
 
     const requestBody = {
       contents: [{ parts }],
+      generationConfig: { responseMimeType: 'application/json' },
     };
 
     const response = await fetch(
@@ -241,7 +242,15 @@ No markdown formatting, no extra text outside this JSON.`;
         answer = parsed.answer || answer;
         recipeCard = parsed.recipeCard || null;
       } catch (e) {
-        if (rawText) answer = rawText;
+        // Even with responseMimeType forcing JSON output, don't trust it blindly — if
+        // parsing still fails for some reason, NEVER show the raw JSON/thinking blob to
+        // the user (that was a real bug: the raw '{"thinking":...,"answer":...}' text was
+        // leaking into the chat). Try to salvage just the answer field via regex; if that
+        // fails too, fall back to a clean, honest message instead of raw text.
+        const answerMatch = rawText.match(/"answer"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        if (answerMatch) {
+          try { answer = JSON.parse(`"${answerMatch[1]}"`); } catch (e2) { /* keep default */ }
+        }
         else if (data?.promptFeedback?.blockReason) answer = `⚠️ Blocked by Gemini safety filter: ${data.promptFeedback.blockReason}`;
       }
     }

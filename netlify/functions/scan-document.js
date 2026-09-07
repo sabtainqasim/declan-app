@@ -68,6 +68,7 @@ Return ONLY the JSON, no extra text, no markdown formatting.`;
               ],
             },
           ],
+          generationConfig: { responseMimeType: 'application/json' },
         }),
       }
     );

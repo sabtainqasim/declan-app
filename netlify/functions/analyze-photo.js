@@ -64,6 +64,7 @@ exports.handler = async function (event) {
               { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
             ],
           }],
+          generationConfig: { responseMimeType: 'application/json' },
         }),
       }
     );
