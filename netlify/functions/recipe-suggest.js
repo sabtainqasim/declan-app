@@ -38,6 +38,13 @@ exports.handler = async function (event) {
     const safeCity = typeof city === 'string' ? city.slice(0, 100) : '';
     const safeFavouriteStore = typeof favouriteStore === 'string' ? favouriteStore.slice(0, 100) : '';
 
+    const CURATED_COUNTRIES = ['pakistan', 'india', 'bangladesh', 'united states', 'united kingdom', 'canada', 'australia', 'united arab emirates', 'saudi arabia', 'germany'];
+    const needsStoreSearch = !safeFavouriteStore && safeCountry && !CURATED_COUNTRIES.includes(safeCountry.toLowerCase());
+    const { tavilySearch } = require('./utils/_tavilySearch');
+    const searchResult = needsStoreSearch
+      ? await tavilySearch(`well known grocery store supermarket chain in ${safeCity ? safeCity + ', ' : ''}${safeCountry}`)
+      : null;
+
     const prompt = `You are Declan, a friendly home AI assistant. Suggest 3 recipes a family could cook today,
 using the same structured "recipeCard" shape as your main recipe intelligence feature.
 
@@ -55,12 +62,11 @@ FAVOURITE/RECOMMENDED STORE: ${safeFavouriteStore
   ? `The household's favourite store is "${safeFavouriteStore}" — don't suggest a different store, leave "storeSuggestion" as null (the app already shows their favourite).`
   : `The app has its own curated store list for these countries: Pakistan, India, Bangladesh, United States,
 United Kingdom, Canada, Australia, United Arab Emirates, Saudi Arabia, Germany — if the location above is one
-of these, leave "storeSuggestion" as null (the app handles it). For ANY OTHER country, use web search to find
-one real, well-known local grocery store or supermarket chain that actually operates there — only name a
-store you're reasonably confident actually exists. Fill "storeSuggestion": {"name": "...", "url": "the
-store's real official homepage if found, else empty string", "note": "AI-suggested — verify local
-availability"} per recipe. If you're not confident about a real store for that location, leave it null rather
-than guessing or inventing a name/URL.`}
+of these, leave "storeSuggestion" as null (the app handles it). For ANY OTHER country: ${searchResult
+  ? `here are real web search results to help you name an actual store —\n${searchResult.contextText}`
+  : `only name a store you're genuinely confident about from your own training knowledge`} — never invent a
+name/URL. Fill "storeSuggestion": {"name": "...", "url": "the store's real official homepage if known, else
+empty string", "note": "AI-suggested — verify local availability"} per recipe. If unsure, leave it null.`}
 
 Respond ONLY as a JSON array of recipeCard objects in this exact shape:
 [{
@@ -82,7 +88,6 @@ raw JSON array.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
         }),
       }
     );

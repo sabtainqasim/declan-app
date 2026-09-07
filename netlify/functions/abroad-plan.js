@@ -48,9 +48,16 @@ exports.handler = async function (event) {
       family: 'family/dependent visa documents, schooling considerations if applicable, family accommodation, household budget, family-friendly local essentials',
     }[safePurpose] || 'general relocation essentials: documents, accommodation, budget, local basics';
 
+    const { tavilySearch } = require('./utils/_tavilySearch');
+    const searchResult = await tavilySearch(
+      `moving to ${safeDestCity ? safeDestCity + ', ' : ''}${safeDestCountry} as a ${safePurpose} - visa documents, currency, emergency number, cost of living`
+    );
+
     const prompt = `You are Declan, a home AI assistant, specifically powering "Abroad Mode" — helping someone
-moving to a new country manage the practical side of daily life there. Using web search for anything
-location-specific (currency, typical costs, emergency numbers), build a connected starter plan for this move.
+moving to a new country manage the practical side of daily life there. ${searchResult
+  ? `Here are real, current web search results to ground your plan — use them:\n${searchResult.contextText}`
+  : `No live web search results are available right now — base this on your general training knowledge, and
+be honest in the summary that specifics should be verified.`} Build a connected starter plan for this move.
 
 Destination: ${safeDestCity ? safeDestCity + ', ' : ''}${safeDestCountry}
 Moving from: ${safeHomeCountry || 'not specified'}
@@ -61,9 +68,9 @@ Extra context from the user: ${safeNotes || 'none'}
 
 Build a SHORT, genuinely useful, connected plan (not generic travel-blog advice) covering:
 1. documentChecklist: 5-8 SPECIFIC document items for this exact purpose/destination (e.g. actual visa type
-   name if you know it via search, not just "visa" generically)
+   name if you know it from the search results above or training knowledge, not just "visa" generically)
 2. estimatedStartupBudget: a short phrase like "≈ £800-1200 (estimated first-month essentials)" in the
-   DESTINATION country's real currency (use web search to get the right currency and a realistic range) —
+   DESTINATION country's real currency (from the search results above if present, else your training knowledge) —
    always say "estimated", never claim it as an exact/verified figure
 3. grocerySubstitutes: array of 2-4 {item, substitute} pairs for common home-country ingredients that may be
    hard to find in the destination, tailored to the user's likely home cuisine if inferable from homeCountry
@@ -95,7 +102,6 @@ No markdown formatting, no extra text outside this JSON.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
         }),
       }
     );

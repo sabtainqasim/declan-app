@@ -88,14 +88,20 @@ exports.handler = async function (event) {
       ? `Give all prices in ${resolvedCurrency.code} (${resolvedCurrency.symbol}) — this is the correct currency for ${safeCountry}, do not use any other currency.`
       : `The user's country isn't set, so give a currency-neutral price range description instead of guessing a currency (e.g. "roughly low-cost" rather than inventing a currency symbol).`;
 
-    const prompt = `You are Declan, a home AI assistant. Using general publicly available information (web
-search), give a rough, general APPROXIMATE price estimate for these grocery items in ${location}: ${safeItems.join(', ')}.
+    const { tavilySearch } = require('./utils/_tavilySearch');
+    const searchResult = await tavilySearch(`current grocery prices ${safeItems.join(', ')} ${location}`);
+
+    const prompt = `You are Declan, a home AI assistant. Give a rough, general APPROXIMATE price estimate for
+these grocery items in ${location}: ${safeItems.join(', ')}.
+
+${searchResult ? `Real web search results for reference (use these to ground your estimate, but still frame
+it as approximate, not an exact live price):\n${searchResult.contextText}` : `No live web search results are
+available right now — base your estimate on general knowledge and say so honestly.`}
 
 ${currencyInstruction}
 
-Important: You do NOT have access to live/exact retailer pricing — always frame this as a general estimate/
-typical range, never as an exact current price. If you're not confident about prices for this specific
-location, say so honestly rather than making up numbers.
+Important: Always frame this as a general estimate/typical range, never as an exact current price. If you're
+not confident about prices for this specific location, say so honestly rather than making up numbers.
 
 Respond ONLY as JSON in this shape:
 {"estimates": [{"item": "...", "priceRange": "...", "currency": "..."}], "note": "a short honest caveat about this being a general estimate, not live pricing"}
@@ -108,7 +114,6 @@ No markdown formatting, no extra text.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
         }),
       }
     );

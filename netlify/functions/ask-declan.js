@@ -61,6 +61,16 @@ exports.handler = async function (event) {
       }
     }
 
+    // Only spend a Tavily search credit when the question actually seems to need current
+    // info — conserves the free monthly quota (1,000 credits) instead of searching every
+    // single chat message, same principle as TRR's keyword-gated approach.
+    const { tavilySearch } = require('./utils/_tavilySearch');
+    const searchKeywords = ['price', 'cost', 'current', 'today', 'news', 'weather', 'latest',
+      'store', 'buy', 'where can i', 'how much', 'exchange rate', 'currency', 'open now', 'closest'];
+    const questionLower = question.toLowerCase();
+    const needsSearch = searchKeywords.some(kw => questionLower.includes(kw));
+    const searchResult = needsSearch ? await tavilySearch(question) : null;
+
     const prompt = `You are Declan, a warm and helpful personal home AI assistant for a family — part of a
 full Home Operating System, not just a standalone chatbot. You have access to this household's saved data
 (their "Home Memory") spanning every part of the app - kitchen/recipes, grocery, finance/bills, home
@@ -73,11 +83,13 @@ these lines: "I'm Declan, your personal home AI assistant. I help you manage you
 health, and everyday home life - all in one place." Keep it brief and natural, don't recite this word-for-word
 every time, just convey that meaning when identity is actually asked about.
 
-WEB SEARCH: You have access to Google Search grounding. If the question needs current/real-time information
-(news, prices, today's date, current events, anything outside your training or the household data), use it.
-When you do use web information, briefly signal in your answer that it's current/web-sourced (e.g. "as of
-today..." or "I checked and..."), and prefer official sources when the question is about an official site,
-product, or store. Never invent a source or a fact you didn't actually find.
+WEB SEARCH: ${searchResult ? `Below are real, current web search results relevant to this question — use
+them to give an accurate, up-to-date answer, and briefly mention the info is current/web-sourced. Never
+invent facts beyond what these results say:
+${searchResult.contextText}` : `You do NOT have live web search for this question (either it didn't seem to
+need current info, or search wasn't available right now). If the question genuinely needs real-time
+information you can't be sure of, say so honestly rather than guessing — don't imply you looked something up
+if you didn't.`}
 
 IMAGE: If a photo is attached, look at it and answer the question about it directly (e.g. "what is this?").
 
@@ -113,10 +125,11 @@ FAVOURITE/RECOMMENDED STORE: If the household has a favouriteStore set, mention 
 buy missing items. Otherwise, the app already has its own curated store list for these countries: Pakistan,
 India, Bangladesh, United States, United Kingdom, Canada, Australia, United Arab Emirates, Saudi Arabia,
 Germany — if the household's country is one of these, don't suggest a store yourself, leave "storeSuggestion"
-as null (the app handles it). For ANY OTHER country, use web search to find one real, well-known local grocery
-store or supermarket chain that actually operates in that country/city — only name a store you're reasonably
-confident actually exists there. Fill "storeSuggestion": {"name": "...", "url": "the store's real official
-homepage URL if you found one, otherwise empty string", "note": "AI-suggested — verify local availability"}.
+as null (the app handles it). For ANY OTHER country, only name a real, well-known local grocery store or
+supermarket chain if you're genuinely confident it operates there (from the web search results above if
+present, or your own training knowledge) — never guess. Fill "storeSuggestion": {"name": "...", "url": "the
+store's real official homepage if you're confident of it, otherwise empty string", "note": "AI-suggested —
+verify local availability"}.
 If you're not confident about any real store for that location, leave storeSuggestion as null rather than
 guessing or inventing a name/URL.
 
@@ -194,7 +207,6 @@ No markdown formatting, no extra text outside this JSON.`;
 
     const requestBody = {
       contents: [{ parts }],
-      tools: [{ google_search: {} }],
     };
 
     const response = await fetch(
@@ -208,8 +220,9 @@ No markdown formatting, no extra text outside this JSON.`;
 
     const data = await response.json();
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const groundingSources = (data?.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
-      .map(c => c?.web?.title || c?.web?.uri).filter(Boolean).slice(0, 3);
+    // Sources now come from our own Tavily search call (if one was made), not Gemini's
+    // native grounding metadata (which no longer applies since we removed that tool).
+    const groundingSources = searchResult ? searchResult.sources.map(s => s.title) : [];
 
     let thinking = '';
     let answer = "Sorry, I couldn't come up with an answer just now.";
