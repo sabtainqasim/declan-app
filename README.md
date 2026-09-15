@@ -22,25 +22,19 @@
 
 4. **Set your subdomain:**
    - Site settings → Domain management → Options → Edit site name
-   - Set it to `declanhome` so your URL becomes `declanhome.netlify.app`
+   - Your live site is already `declan-ai-home` so your URL becomes `declan-ai-home.netlify.app`
 
-5. **Set up Supabase (cloud data sync — optional but recommended):**
-   - Create a free project at https://supabase.com
-   - Go to SQL Editor → paste the contents of `supabase-schema.sql` → Run
-   - Go to Project Settings → API → copy your **Project URL** and **anon public key**
-   - Open `index.html`, find these two lines near the top of the `<script>` section, and fill them in:
-     ```
-     const SUPABASE_URL = ''; // paste your Project URL here
-     const SUPABASE_ANON_KEY = ''; // paste your anon key here
-     ```
-   - Without this step, the app still works perfectly fine — it just stores data only on the device it's used on (localStorage), instead of syncing across devices.
+5. **Cloud sync (Family Share) — zero setup needed.** This runs on Netlify's own built-in
+   Postgres database via `@netlify/database`. As long as `package.json` and the migration
+   file under `netlify/database/migrations/` are deployed, Netlify auto-provisions the
+   database on first deploy — no account to create, no credentials to copy/paste.
 
 6. **Deploy.** That's it — Netlify auto-detects the `netlify/functions` folder and deploys the serverless functions alongside the site.
 
 ## Notes
 - Without `GEMINI_API_KEY` set, the Kitchen "AI Suggest" and Smart Scanner features will automatically fall back to offline demo data — the app still works, just not with live AI.
-- Without Supabase configured, all data (pantry, grocery list, bills, reminders, etc.) stays in the browser's `localStorage` on that one device.
-- **Important — read before real users join:** the current Supabase setup uses a random per-device "household ID" instead of real accounts, so it's not proper multi-user authentication yet. This is fine for early testing, but before handling real family data at scale, this should be upgraded to Supabase Auth (real login) — flagged clearly in `supabase-schema.sql` too.
+- Family Share (cross-device sync) requires no setup — it's backed by Netlify's own database automatically. If the sync call ever fails (offline, temporary issue), the app just falls back to that device's local `localStorage` — nothing breaks.
+- **Important — read before real users join:** the current Family Share setup uses a random per-device "household ID" instead of real accounts, so it's not proper multi-user authentication yet. This is fine for early testing, but before handling real family data at scale, this should be upgraded to real authentication.
 
 ## Installing as an app (PWA) — works today, free
 
@@ -51,10 +45,10 @@ This project already includes `manifest.json`, `service-worker.js`, and app icon
 
 ## Publishing to Google Play Store (~$25 one-time, no Mac needed)
 
-A `twa-manifest.json` is already included in this project (pre-filled for `declanhome.netlify.app`).
+A `twa-manifest.json` is already included in this project (pre-filled for `declan-ai-home.netlify.app`).
 
 1. Install [Bubblewrap CLI](https://github.com/GoogleChromeLabs/bubblewrap) (`npm install -g @bubblewrap/cli`) — works on Windows/Linux/Mac.
-2. Once deployed, run `bubblewrap build` in this folder (it will read `twa-manifest.json` directly) to produce a signed `.aab` file. If your domain differs from `declanhome.netlify.app`, update the `host` field in `twa-manifest.json` first.
+2. Once deployed, run `bubblewrap build` in this folder (it will read `twa-manifest.json` directly) to produce a signed `.aab` file. If your domain differs from `declan-ai-home.netlify.app`, update the `host` field in `twa-manifest.json` first.
 3. Create a one-time $25 Google Play Developer account at https://play.google.com/console, and upload the `.aab`.
 
 ## Publishing to Apple App Store (later, once there's budget)
@@ -92,7 +86,6 @@ site + serverless functions alone.
 
 ## Still to build
 - True background push notifications (requires Firebase Cloud Messaging or similar push server)
-- Real-time AI conversation for Symptom Checker (currently rule-based, not connected to Gemini)
 - Weekly/monthly health trend reports, PDF/CSV export
-- Proper multi-user household accounts (Supabase Auth) — current setup uses a per-device random ID
+- Proper multi-user household accounts (real authentication) — current setup uses a per-device random ID
 - Mascot success/error toast animation is wired into a few actions (pantry, bills, to-do) as a working example — extending it to every single action across all modules is a mechanical follow-up task

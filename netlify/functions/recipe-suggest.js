@@ -38,7 +38,7 @@ exports.handler = async function (event) {
     const safeCity = typeof city === 'string' ? city.slice(0, 100) : '';
     const safeFavouriteStore = typeof favouriteStore === 'string' ? favouriteStore.slice(0, 100) : '';
 
-    const CURATED_COUNTRIES = ['pakistan', 'india', 'bangladesh', 'united states', 'united kingdom', 'canada', 'australia', 'united arab emirates', 'saudi arabia', 'germany'];
+    const CURATED_COUNTRIES = ['pakistan', 'india', 'bangladesh', 'united states', 'united kingdom', 'canada', 'australia', 'united arab emirates', 'kuwait', 'saudi arabia', 'germany'];
     const needsStoreSearch = !safeFavouriteStore && safeCountry && !CURATED_COUNTRIES.includes(safeCountry.toLowerCase());
     const { tavilySearch } = require('./utils/_tavilySearch');
     const searchResult = needsStoreSearch
@@ -61,7 +61,7 @@ ${language && language !== 'English' ? `Write name/intro/tags in ${language}.` :
 FAVOURITE/RECOMMENDED STORE: ${safeFavouriteStore
   ? `The household's favourite store is "${safeFavouriteStore}" — don't suggest a different store, leave "storeSuggestion" as null (the app already shows their favourite).`
   : `The app has its own curated store list for these countries: Pakistan, India, Bangladesh, United States,
-United Kingdom, Canada, Australia, United Arab Emirates, Saudi Arabia, Germany — if the location above is one
+United Kingdom, Canada, Australia, United Arab Emirates, Kuwait, Saudi Arabia, Germany — if the location above is one
 of these, leave "storeSuggestion" as null (the app handles it). For ANY OTHER country: ${searchResult
   ? `here are real web search results to help you name an actual store —\n${searchResult.contextText}`
   : `only name a store you're genuinely confident about from your own training knowledge`} — never invent a

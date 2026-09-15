@@ -1,0 +1,9 @@
+{
+  "name": "declan-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Declan — AI Home Assistant",
+  "dependencies": {
+    "@netlify/database": "^2.0.1"
+  }
+}

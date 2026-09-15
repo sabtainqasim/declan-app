@@ -27,30 +27,41 @@ async function tavilySearch(query, maxResults = 3) {
   if (!apiKey || !query) return null;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      signal: controller.signal,
       body: JSON.stringify({
         query: query.slice(0, 400),
         max_results: Math.min(maxResults, 5),
-        search_depth: 'basic', // 1 credit per request instead of 2 (advanced) — conserves the free monthly quota
+        search_depth: 'basic',
       }),
     });
+    clearTimeout(timeoutId);
 
-    if (!response.ok) return null; // e.g. quota exhausted, invalid key — fail silently, caller falls back gracefully
+    if (!response.ok) return null;
     const data = await response.json();
     const results = Array.isArray(data.results) ? data.results.slice(0, maxResults) : [];
     if (results.length === 0) return null;
 
+    function cleanTitle(r) {
+      const raw = (r.title || '').replace(/[\r\n\t]+/g, ' ').trim();
+      if (raw) return raw.slice(0, 80);
+      try { return new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { return 'Web result'; }
+    }
+
     const contextText = results
-      .map((r, i) => `[${i + 1}] ${r.title || 'Untitled'}: ${(r.content || '').slice(0, 300)} (source: ${r.url})`)
+      .map((r, i) => `[${i + 1}] ${cleanTitle(r)}: ${(r.content || '').replace(/[\r\n\t]+/g, ' ').slice(0, 300)} (source: ${r.url})`)
       .join('\n');
 
-    const sources = results.map(r => ({ title: r.title || r.url, url: r.url })).filter(s => s.url);
+    const sources = results.map(r => ({ title: cleanTitle(r), url: r.url })).filter(s => s.url);
 
     return { contextText, sources };
   } catch (e) {
-    return null; // network error, timeout, etc. — never let search break the main request
+    return null;
   }
 }
 

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://declanhome.netlify.app/sitemap.xml
+Sitemap: https://declan-ai-home.netlify.app/sitemap.xml

@@ -1,6 +1,6 @@
 {
   "packageId": "app.declanhome.twa",
-  "host": "declanhome.netlify.app",
+  "host": "declan-ai-home.netlify.app",
   "name": "Declan",
   "launcherName": "Declan",
   "display": "standalone",
@@ -8,11 +8,11 @@
   "navigationColor": "#7A9B76",
   "backgroundColor": "#FAF6F0",
   "startUrl": "/index.html",
-  "iconUrl": "https://declanhome.netlify.app/icons/icon-512.png",
-  "maskableIconUrl": "https://declanhome.netlify.app/icons/icon-512.png",
+  "iconUrl": "https://declan-ai-home.netlify.app/icons/icon-512.png",
+  "maskableIconUrl": "https://declan-ai-home.netlify.app/icons/icon-512.png",
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://declanhome.netlify.app/manifest.json",
+  "webManifestUrl": "https://declan-ai-home.netlify.app/manifest.json",
   "fallbackType": "customtabs",
   "features": {
     "playBilling": {

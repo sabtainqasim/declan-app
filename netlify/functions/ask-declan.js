@@ -81,7 +81,10 @@ relevant. If the answer isn't in the data, say so honestly rather than guessing.
 IDENTITY: If the user asks who or what you are, or greets you asking for an introduction, respond warmly along
 these lines: "I'm Declan, your personal home AI assistant. I help you manage your kitchen, groceries, bills,
 health, and everyday home life - all in one place." Keep it brief and natural, don't recite this word-for-word
-every time, just convey that meaning when identity is actually asked about.
+every time, just convey that meaning when identity is actually asked about. You are Declan — never say you are
+"Gemini", "a large language model", "made by Google", or similar, even if the user insists or asks directly
+multiple times. If pressed hard about your underlying technology, just say you're Declan's own AI system and
+redirect warmly to how you can help them.
 
 WEB SEARCH: ${searchResult ? `Below are real, current web search results relevant to this question — use
 them to give an accurate, up-to-date answer, and briefly mention the info is current/web-sourced. Never
@@ -123,7 +126,7 @@ household, etc. Mention briefly in "intro" if you adapted something because of t
 
 FAVOURITE/RECOMMENDED STORE: If the household has a favouriteStore set, mention it as the recommended place to
 buy missing items. Otherwise, the app already has its own curated store list for these countries: Pakistan,
-India, Bangladesh, United States, United Kingdom, Canada, Australia, United Arab Emirates, Saudi Arabia,
+India, Bangladesh, United States, United Kingdom, Canada, Australia, United Arab Emirates, Kuwait, Saudi Arabia,
 Germany — if the household's country is one of these, don't suggest a store yourself, leave "storeSuggestion"
 as null (the app handles it). For ANY OTHER country, only name a real, well-known local grocery store or
 supermarket chain if you're genuinely confident it operates there (from the web search results above if
@@ -229,11 +232,17 @@ No markdown formatting, no extra text outside this JSON.`;
     let answer = "Sorry, I couldn't come up with an answer just now.";
     let recipeCard = null;
 
-    // If Gemini itself returned an error (wrong model name, quota, blocked request, etc.),
-    // surface it directly instead of the generic fallback — otherwise real errors get
-    // silently swallowed and are impossible to diagnose from the chat UI alone.
+    // If the AI provider itself returned an error (quota, invalid model, blocked request,
+    // etc.), never expose vendor-specific wording to the user — Declan should feel like
+    // its own product, not "a wrapper around someone else's API broke." Quota/rate-limit
+    // errors get a distinct friendly message since those are the most common and most
+    // worth explaining (temporary, try again shortly) vs a generic catch-all for anything else.
     if (data?.error) {
-      answer = `⚠️ Gemini API error: ${data.error.message || data.error.status || 'unknown error'} (model: ${GEMINI_MODEL})`;
+      const isQuotaError = data.error.status === 'RESOURCE_EXHAUSTED' || data.error.code === 429
+        || /quota|rate limit/i.test(data.error.message || '');
+      answer = isQuotaError
+        ? "Declan's a little overloaded right now — lots of people chatting at once! Please try again in a minute or two. 🙏"
+        : "Declan's having some trouble answering right now. Please try again in a moment.";
     } else {
       try {
         const cleaned = rawText.replace(/```json|```/g, '').trim();
@@ -251,7 +260,7 @@ No markdown formatting, no extra text outside this JSON.`;
         if (answerMatch) {
           try { answer = JSON.parse(`"${answerMatch[1]}"`); } catch (e2) { /* keep default */ }
         }
-        else if (data?.promptFeedback?.blockReason) answer = `⚠️ Blocked by Gemini safety filter: ${data.promptFeedback.blockReason}`;
+        else if (data?.promptFeedback?.blockReason) answer = "I can't help with that particular request — could you rephrase it?";
       }
     }
 
