@@ -2881,13 +2881,33 @@
     'Greek': 'el-GR', 'Hebrew': 'he-IL', 'Romanian': 'ro-RO', 'Hungarian': 'hu-HU', 'Czech': 'cs-CZ',
     'Swedish': 'sv-SE', 'Norwegian': 'no-NO', 'Danish': 'da-DK', 'Finnish': 'fi-FI',
   };
+  // Declan can naturally reply in a different language than the stored setting
+  // (Auto Mode mirrors the user's own language/script sometimes) — if the stored
+  // setting's voice wouldn't match what's actually on screen, speech synthesis
+  // often just fails silently. Detect the actual script and override when needed.
+  function detectScriptOverride(text, configuredLangCode){
+    if(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text)){
+      const arabicScriptLangs = ['ur-PK','ar-SA','fa-IR','ps-AF','sd-IN'];
+      return arabicScriptLangs.includes(configuredLangCode) ? configuredLangCode : 'ur-PK';
+    }
+    if(/[\u0900-\u097F]/.test(text)) return ['hi-IN','mr-IN','ne-NP'].includes(configuredLangCode) ? configuredLangCode : 'hi-IN';
+    if(/[\u0980-\u09FF]/.test(text)) return 'bn-BD';
+    if(/[\u4E00-\u9FFF]/.test(text)) return configuredLangCode.startsWith('zh') ? configuredLangCode : 'zh-CN';
+    if(/[\u3040-\u30FF]/.test(text)) return 'ja-JP';
+    if(/[\uAC00-\uD7AF]/.test(text)) return 'ko-KR';
+    if(/[\u0400-\u04FF]/.test(text)) return 'ru-RU';
+    if(/[\u0E00-\u0E7F]/.test(text)) return 'th-TH';
+    if(/[\u0590-\u05FF]/.test(text)) return 'he-IL';
+    return configuredLangCode; // Latin script (or unrecognized) — trust the stored setting
+  }
   function speakText(text){
     if(!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 0.95;
     const currentLang = localStorage.getItem('declan_language') || 'English';
-    utter.lang = TTS_LANG_CODES[currentLang] || 'en-US';
+    const configuredLangCode = TTS_LANG_CODES[currentLang] || 'en-US';
+    utter.lang = detectScriptOverride(text, configuredLangCode);
     window.speechSynthesis.speak(utter);
   }
   function startHandsFree(){
