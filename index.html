@@ -1575,10 +1575,10 @@
       <div class="add-row" style="flex-wrap:wrap;">
         <input type="number" id="curAmount" placeholder="Amount" value="1" style="flex:1 1 80px; min-width:0;">
         <select id="curFrom" style="border:1px solid #e7e2d8; border-radius:10px; padding:8px; flex:1 1 90px; min-width:0;">
-          <option>USD</option><option>EUR</option><option>GBP</option><option>PKR</option><option>AED</option><option>CAD</option><option>AUD</option>
+          <option>USD</option><option>EUR</option><option>GBP</option><option>PKR</option><option>INR</option><option>BDT</option><option>AED</option><option>KWD</option><option>SAR</option><option>QAR</option><option>OMR</option><option>BHD</option><option>CAD</option><option>AUD</option><option>NZD</option><option>LKR</option><option>NPR</option><option>TRY</option><option>EGP</option>
         </select>
         <select id="curTo" style="border:1px solid #e7e2d8; border-radius:10px; padding:8px; flex:1 1 90px; min-width:0;">
-          <option>PKR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>CAD</option><option>AUD</option>
+          <option>PKR</option><option>USD</option><option>EUR</option><option>GBP</option><option>INR</option><option>BDT</option><option>AED</option><option>KWD</option><option>SAR</option><option>QAR</option><option>OMR</option><option>BHD</option><option>CAD</option><option>AUD</option><option>NZD</option><option>LKR</option><option>NPR</option><option>TRY</option><option>EGP</option>
         </select>
       </div>
       <div class="add-row" style="margin-top:8px;"><button onclick="convertCurrency()">Convert</button></div>
@@ -3640,10 +3640,14 @@
     const to = document.getElementById('curTo').value;
     const box = document.getElementById('currencyResult');
     box.textContent = 'Converting...';
-    fetch(`https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`)
+    // open.er-api.com supports 160+ currencies (Frankfurter, used previously, only covers
+    // ~30 ECB majors and doesn't have PKR/AED/SAR/KWD/QAR/OMR/BHD at all — this was why
+    // converting to/from Gulf and South Asian currencies silently failed).
+    fetch(`https://open.er-api.com/v6/latest/${from}`)
       .then(res => res.json())
       .then(data => {
-        const result = data.rates && data.rates[to];
+        const rate = data.rates && data.rates[to];
+        const result = rate ? amount * rate : null;
         box.textContent = result ? `${amount} ${from} = ${result.toFixed(2)} ${to}` : 'Could not convert (try a different currency pair).';
       })
       .catch(() => { box.textContent = 'Currency service unavailable right now — check your internet connection.'; });
@@ -5355,16 +5359,21 @@
   }
 
   // ---------- GROCERY INTELLIGENCE CARD (shown in chat when cooking intent finds missing ingredients) ----------
-  // Links a specific missing ingredient to real product results on the recommended
-  // store's own site, via a Google site-search — this works reliably for ANY store
-  // without needing to know or guess that store's internal search URL format (several
-  // "stores" in our list are actually corporate/marketing sites with no real online
-  // catalog at all, so guessing a search URL pattern would often be wrong anyway).
-  function buildProductSearchLink(storeUrl, itemName){
-    try {
-      const domain = new URL(storeUrl).hostname.replace(/^www\./, '');
-      return `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(itemName)}`;
-    } catch (e) { return null; }
+  // Links a specific missing ingredient to real product results. Prefers a
+  // site-specific Google search when we know the store's domain (curated stores);
+  // falls back to a general "store name + item" Google search when we only have a
+  // store NAME with no URL (e.g. a custom-typed favourite store that doesn't match
+  // our curated list) — this was a real bug: previously, no URL meant NO link at
+  // all for every missing ingredient, even though we knew the store's name.
+  function buildProductSearchLink(storeNameOrUrl, itemName, storeName){
+    if(storeNameOrUrl){
+      try {
+        const domain = new URL(storeNameOrUrl).hostname.replace(/^www\./, '');
+        return `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(itemName)}`;
+      } catch (e) { /* not a valid URL — fall through to name-based search below */ }
+    }
+    if(storeName) return `https://www.google.com/search?q=${encodeURIComponent(storeName + ' ' + itemName)}`;
+    return `https://www.google.com/search?q=${encodeURIComponent(itemName)}`;
   }
 
   function renderRecipeIntelligenceCard(recipe, targetContainerId = 'chatMessages'){
@@ -5418,8 +5427,8 @@
       ${missing.length ? `
         <div style="font-size:12.5px; font-weight:600; margin:10px 0 4px;">🛒 Need To Buy</div>
         <div style="font-size:13px; margin-bottom:6px;">
-          ${missing.map(item => recommendedStore && recommendedStore.url
-            ? `<a href="${buildProductSearchLink(recommendedStore.url, item)}" target="_blank" style="color:var(--sage-dark); text-decoration:underline;">${item}</a>`
+          ${missing.map(item => recommendedStore
+            ? `<a href="${buildProductSearchLink(recommendedStore.url, item, recommendedStore.name)}" target="_blank" style="color:var(--sage-dark); text-decoration:underline;">${item}</a>`
             : `<span>${item}</span>`
           ).join(', ')}
         </div>
